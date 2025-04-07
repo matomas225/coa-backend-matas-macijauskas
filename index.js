@@ -5,10 +5,13 @@ const cors = require("cors");
 const app = express();
 
 const { mongoURI } = require("./src/config/db");
+
 mongoose
   .connect(mongoURI)
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Could not connect to MongoDB...", err));
+
+app.use(express.json());
 
 const corsOptions = require("./src/middleware/corsOptions");
 app.use(cors(corsOptions));

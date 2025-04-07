@@ -1,4 +1,6 @@
+require("dotenv").config();
+
 module.exports = {
-  origin: "http://localhost:5173",
+  origin: process.env.FRONT_END_URI,
   optionsSuccessStatus: 200,
 };
