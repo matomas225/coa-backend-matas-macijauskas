@@ -1,7 +1,7 @@
-const bcrypt = require("bcrypt");
-const { validationResult } = require("express-validator");
 const User = require("../models/userModel");
 const { postUserValidationRules } = require("../validation/userValidation");
+const { validateRequest } = require("../middleware/validationMiddleware");
+const { isUserExists, createUser } = require("../services/userService");
 
 const getUsers = async (req, res) => {
   try {
@@ -14,37 +14,19 @@ const getUsers = async (req, res) => {
 
 const postUser = [
   ...postUserValidationRules,
+  validateRequest,
 
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        errors: errors.array(),
-      });
-    }
-
     const { username, email, password } = req.body;
 
     try {
-      const existingUsername = await User.findOne({ username });
-      const existingEmail = await User.findOne({ email });
+      const userExistError = await isUserExists(res, username, email);
 
-      if (existingUsername) {
-        return res.status(409).json({ message: "Username is already in use" });
-      }
-      if (existingEmail) {
-        return res.status(409).json({ message: "Email is already in use" });
+      if (userExistError) {
+        return userExistError;
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      const newUser = new User({
-        username,
-        email,
-        password: hashedPassword,
-      });
-
-      await newUser.save();
+      const newUser = await createUser(username, email, password);
 
       return res.status(201).json({
         message: "User created successfully.",
