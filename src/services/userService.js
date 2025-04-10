@@ -6,10 +6,10 @@ const isUserExists = async (res, username, email) => {
   const existingEmail = await User.findOne({ email });
 
   if (existingUsername) {
-    return res.status(409).json({ message: "Username is already in use" });
+    return res.status(409).json({ message: "register.errors.usernameInUse" });
   }
   if (existingEmail) {
-    return res.status(409).json({ message: "Email is already in use" });
+    return res.status(409).json({ message: "register.errors.emailInUse" });
   }
   return null;
 };
@@ -27,4 +27,24 @@ const createUser = async (username, email, password) => {
   return newUser;
 };
 
-module.exports = { isUserExists, createUser };
+const loginAuth = async (username, password) => {
+  const user = await User.findOne({ username });
+  if (!user) {
+    return {
+      success: false,
+      message: "Username or password is incorrect.",
+    };
+  }
+
+  const isPasswordMatch = await bcrypt.compare(password, user.password);
+  if (!isPasswordMatch) {
+    return {
+      success: false,
+      message: "Username or password is incorrect.",
+    };
+  }
+
+  return { success: true };
+};
+
+module.exports = { isUserExists, createUser, loginAuth };
