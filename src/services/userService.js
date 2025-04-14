@@ -44,7 +44,7 @@ const loginAuth = async (username, password) => {
     };
   }
 
-  return { success: true };
+  return { success: true, user: user };
 };
 
 module.exports = { isUserExists, createUser, loginAuth };
