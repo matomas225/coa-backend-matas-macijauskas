@@ -2,7 +2,6 @@ const User = require("../models/userModel");
 const { postUserValidationRules } = require("../validation/userValidation");
 const { validateRequest } = require("../middleware/validationMiddleware");
 const jwt = require("jsonwebtoken");
-const dotenv = require("dotenv");
 const {
   isUserExists,
   createUser,

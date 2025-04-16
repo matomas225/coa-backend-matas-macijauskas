@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -18,6 +19,9 @@ app.use(cors(corsOptions));
 
 const userRoutes = require("./src/routes/userRoutes");
 app.use("/users", userRoutes);
+
+const musicRoutes = require("./src/routes/musicRoutes");
+app.use("/songs", musicRoutes);
 
 app.get("/", (req, res) => {
   res.send("Success ");
