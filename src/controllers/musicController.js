@@ -1,11 +1,42 @@
 const fs = require("fs");
 const path = require("path");
+const Music = require("../models/musicModel");
+const { title } = require("process");
 
-const getSongs = (req, res) => {
-  const songs = ["Fall Back.mp3", "Hold Out.mp3"];
+//TODO Later
+const uploadSong = (req, res) => {
+  const { artist, title, album } = req.body;
+  // const songFile = req.file;
 
-  const songUrls = songs.map((song) => {
-    return `http://localhost:3000/songs/stream/${encodeURIComponent(song)}`;
+  // if (!songFile) {
+  //   return res.status(400).send("No song file uploaded.");
+  // }
+
+  const filePath = path.join(
+    __dirname,
+    "..",
+    "uploads",
+    "music",
+    "songFile.fileName"
+  );
+
+  const newSong = Music({
+    artist,
+    title,
+    album,
+    filePath,
+  });
+
+  console.log(filePath);
+};
+
+const getSongs = async (req, res) => {
+  const music = await Music.find();
+
+  const songUrls = music.map((song) => {
+    return `http://localhost:3000/songs/stream/${encodeURIComponent(
+      path.basename(song.filePath)
+    )}`;
   });
 
   res.json(songUrls);
@@ -64,4 +95,5 @@ const streamSong = (req, res) => {
 module.exports = {
   getSongs,
   streamSong,
+  uploadSong,
 };

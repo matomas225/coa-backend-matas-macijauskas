@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 
-//FOR SAVING SONG INFORMATION TO DB WILL USE LATER
-const musicSchema = mongoose.Schema({});
+const musicSchema = mongoose.Schema({
+  title: String,
+  artist: String,
+  album: String,
+  filePath: String,
+  createdAt: { type: Date, default: Date.now },
+});
 
-module.exports = mongoose.model("songs", musicSchema);
+module.exports = mongoose.model("music", musicSchema, "music");
