@@ -20,8 +20,8 @@ app.use(cors(corsOptions));
 const userRoutes = require("./src/routes/userRoutes");
 app.use("/users", userRoutes);
 
-const musicRoutes = require("./src/routes/musicRoutes");
-app.use("/songs", musicRoutes);
+const songRoutes = require("./src/routes/songRoutes");
+app.use("/songs", songRoutes);
 
 app.get("/", (req, res) => {
   res.send("Success ");

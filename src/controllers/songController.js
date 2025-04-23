@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const Music = require("../models/musicModel");
-const { title } = require("process");
+const Song = require("../models/songModel");
 
 //TODO Later
 const uploadSong = (req, res) => {
@@ -16,7 +15,7 @@ const uploadSong = (req, res) => {
     __dirname,
     "..",
     "uploads",
-    "music",
+    "songs",
     "songFile.fileName"
   );
 
@@ -31,9 +30,9 @@ const uploadSong = (req, res) => {
 };
 
 const getSongs = async (req, res) => {
-  const music = await Music.find();
+  const songs = await Song.find();
 
-  const songUrls = music.map((song) => {
+  const songUrls = songs.map((song) => {
     return `http://localhost:3000/songs/stream/${encodeURIComponent(
       path.basename(song.filePath)
     )}`;
@@ -48,7 +47,7 @@ const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB per chunk
 
 const streamSong = (req, res) => {
   const fileName = req.params.filename;
-  const filePath = path.join(__dirname, "..", "uploads", "music", fileName); // Construct the file path
+  const filePath = path.join(__dirname, "..", "uploads", "songs", fileName); // Construct the file path
 
   // Check if the file exists
   fs.stat(filePath, (err, stat) => {

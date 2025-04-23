@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const musicSchema = mongoose.Schema({
+const songSchema = mongoose.Schema({
   title: String,
   artist: String,
   album: String,
@@ -8,4 +8,4 @@ const musicSchema = mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model("music", musicSchema, "music");
+module.exports = mongoose.model("songs", songSchema, "songs");

@@ -62,11 +62,15 @@ const loginUser = async (req, res) => {
       { username: user.username },
       process.env.JWT_SECRET,
       {
-        expiresIn: "1h",
+        expiresIn: "30s",
       }
     );
 
-    return res.status(200).json({ message: "Loged in!", token: token });
+    return res.status(200).json({
+      message: "Loged in!",
+      token: token,
+      user: { username: user.username, email: user.email },
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
