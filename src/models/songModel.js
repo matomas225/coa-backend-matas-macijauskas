@@ -5,6 +5,7 @@ const songSchema = mongoose.Schema({
   artist: String,
   album: String,
   filePath: String,
+  imagePath: String,
   createdAt: { type: Date, default: Date.now },
 });
 

@@ -19,6 +19,14 @@ const uploadSong = (req, res) => {
     "songFile.fileName"
   );
 
+  const imagePath = path.join(
+    __dirname,
+    "..",
+    "uploads",
+    "images",
+    "imageFile.fileName"
+  );
+
   const newSong = Music({
     artist,
     title,
@@ -30,15 +38,23 @@ const uploadSong = (req, res) => {
 };
 
 const getSongs = async (req, res) => {
-  const songs = await Song.find();
+  const songsFromDb = await Song.find();
 
-  const songUrls = songs.map((song) => {
-    return `http://localhost:3000/songs/stream/${encodeURIComponent(
-      path.basename(song.filePath)
-    )}`;
+  const songs = songsFromDb.map((song) => {
+    return {
+      songPath: `http://localhost:3000/songs/stream/${encodeURIComponent(
+        path.basename(song.filePath)
+      )}`,
+      imagePath: `http://localhost:3000/songs/image/${encodeURIComponent(
+        path.basename(song.imagePath)
+      )}`,
+      title: song.title,
+      artist: song.artist,
+      id: song.id,
+    };
   });
 
-  res.json(songUrls);
+  res.json(songs);
 };
 
 //I DON'T KNOW 100% HOW IT WORKS TALK WITH CODEACADEMY TEACHERS!!!!
@@ -91,8 +107,22 @@ const streamSong = (req, res) => {
   });
 };
 
+const getImage = (req, res) => {
+  const fileName = req.params.filename;
+  const filePath = path.join(__dirname, "..", "uploads", "images", fileName);
+
+  fs.stat(filePath, (err, stat) => {
+    if (err) {
+      return res.status(404).send("File not found");
+    }
+
+    fs.createReadStream(filePath).pipe(res);
+  });
+};
+
 module.exports = {
   getSongs,
   streamSong,
   uploadSong,
+  getImage,
 };
