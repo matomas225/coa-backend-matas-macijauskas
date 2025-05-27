@@ -1,128 +1,136 @@
 const fs = require("fs");
 const path = require("path");
 const Song = require("../models/songModel");
+const { validationResult } = require('express-validator');
+const { uploadSong } = require('../services/songService');
 
-//TODO Later
-const uploadSong = (req, res) => {
-  const { artist, title, album } = req.body;
-  // const songFile = req.file;
+class SongController {
+  async uploadSong(req, res) {
+    try {
+      // Check validation results
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
 
-  // if (!songFile) {
-  //   return res.status(400).send("No song file uploaded.");
-  // }
+      // Check if files are present
+      if (!req.files?.songFile?.[0] || !req.files?.imageFile?.[0]) {
+        return res.status(400).json({
+          errors: [
+            {
+              msg: !req.files?.songFile?.[0]
+                ? 'Song file is required'
+                : 'Cover image is required'
+            }
+          ]
+        });
+      }
 
-  const filePath = path.join(
-    __dirname,
-    "..",
-    "uploads",
-    "songs",
-    "songFile.fileName"
-  );
+      // Process upload through service
+      const songMetadata = await uploadSong(req.body, {
+        songFile: req.files.songFile[0],
+        imageFile: req.files.imageFile[0]
+      });
+      
+      // Save to database
+      const newSong = new Song({
+        title: songMetadata.title,
+        artist: songMetadata.artist,
+        album: songMetadata.album,
+        filePath: songMetadata.songPath,
+        imagePath: songMetadata.imagePath
+      });
 
-  const imagePath = path.join(
-    __dirname,
-    "..",
-    "uploads",
-    "images",
-    "imageFile.fileName"
-  );
-
-  const newSong = Music({
-    artist,
-    title,
-    album,
-    filePath,
-  });
-
-  console.log(filePath);
-};
-
-const getSongs = async (req, res) => {
-  const songsFromDb = await Song.find();
-
-  const songs = songsFromDb.map((song) => {
-    return {
-      songPath: `http://localhost:3000/songs/stream/${encodeURIComponent(
-        path.basename(song.filePath)
-      )}`,
-      imagePath: `http://localhost:3000/songs/image/${encodeURIComponent(
-        path.basename(song.imagePath)
-      )}`,
-      title: song.title,
-      artist: song.artist,
-      id: song.id,
-    };
-  });
-
-  res.json(songs);
-};
-
-//I DON'T KNOW 100% HOW IT WORKS TALK WITH CODEACADEMY TEACHERS!!!!
-// Default chunk size - You can change this to adjust streaming behavior
-const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB per chunk
-
-const streamSong = (req, res) => {
-  const fileName = req.params.filename;
-  const filePath = path.join(__dirname, "..", "uploads", "songs", fileName); // Construct the file path
-
-  // Check if the file exists
-  fs.stat(filePath, (err, stat) => {
-    if (err) {
-      return res.status(404).send("File not found"); // If the file isn't found, return 404
+      await newSong.save();
+      
+      res.status(201).json({
+        message: 'Song uploaded successfully',
+        data: songMetadata
+      });
+    } catch (error) {
+      console.error('Error uploading song:', error);
+      res.status(500).json({
+        error: 'Failed to upload song',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
+  }
 
-    const fileSize = stat.size; // Get the total size of the file
-    const range = req.headers.range; // Get the range from the request
-
-    // If no Range header is sent, we send the whole file
-    if (!range) {
-      res.writeHead(200, { "Content-Type": "audio/mpeg" }); // HTTP 200 OK for the whole file
-      fs.createReadStream(filePath).pipe(res); // Send the entire file
-      return;
+  async getSongs(req, res) {
+    try {
+      const songsFromDb = await Song.find();
+  
+      const songs = songsFromDb.map((song) => ({
+        songPath: `http://localhost:3000/songs/stream/${encodeURIComponent(
+          path.basename(song.filePath)
+        )}`,
+        imagePath: `http://localhost:3000/songs/image/${encodeURIComponent(
+          path.basename(song.imagePath)
+        )}`,
+        title: song.title,
+        artist: song.artist,
+        id: song.id,
+      }));
+  
+      res.json(songs);
+    } catch (error) {
+      console.error('Error fetching songs:', error);
+      res.status(500).json({ error: 'Error fetching songs' });
     }
+  }
 
-    // Parsing the Range header (e.g., bytes=0-1048575)
-    const parts = range.replace(/bytes=/, "").split("-");
-    const start = parseInt(parts[0], 10); // Start byte
-    const end = parts[1] ? parseInt(parts[1], 10) : start + CHUNK_SIZE - 1; // End byte (default to chunk size)
-
-    // Ensure that the requested range is valid
-    if (start >= fileSize) {
-      return res.status(416).send("Requested range not satisfiable"); // 416 if the range is out of bounds
+  async streamSong(req, res) {
+    const fileName = req.params.filename;
+    const filePath = path.join(__dirname, "..", "uploads", "songs", fileName);
+  
+    try {
+      const stat = await fs.promises.stat(filePath);
+      const fileSize = stat.size;
+      const range = req.headers.range;
+  
+      if (!range) {
+        res.writeHead(200, { "Content-Type": "audio/mpeg" });
+        fs.createReadStream(filePath).pipe(res);
+        return;
+      }
+  
+      const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB per chunk
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : start + CHUNK_SIZE - 1;
+  
+      if (start >= fileSize) {
+        return res.status(416).send("Requested range not satisfiable");
+      }
+  
+      const finalEnd = Math.min(end, fileSize - 1);
+      const chunkSize = finalEnd - start + 1;
+  
+      res.writeHead(206, {
+        "Content-Range": `bytes ${start}-${finalEnd}/${fileSize}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": chunkSize,
+        "Content-Type": "audio/mpeg",
+      });
+  
+      fs.createReadStream(filePath, { start, end: finalEnd }).pipe(res);
+    } catch (error) {
+      console.error('Error streaming song:', error);
+      res.status(404).send("File not found");
     }
+  }
 
-    const finalEnd = end > fileSize - 1 ? fileSize - 1 : end; // Don't exceed file size
-    const chunkSize = finalEnd - start + 1; // Calculate the actual chunk size
-
-    // Send the appropriate response headers (206 Partial Content)
-    res.writeHead(206, {
-      "Content-Range": `bytes ${start}-${finalEnd}/${fileSize}`, // Indicate which part of the file is being sent
-      "Accept-Ranges": "bytes", // Inform the client that byte-range requests are supported
-      "Content-Length": chunkSize, // Indicate the size of the chunk being sent
-      "Content-Type": "audio/mpeg", // Specify the MIME type
-    });
-
-    // Create a stream for the requested chunk and send it to the response
-    fs.createReadStream(filePath, { start, end: finalEnd }).pipe(res);
-  });
-};
-
-const getImage = (req, res) => {
-  const fileName = req.params.filename;
-  const filePath = path.join(__dirname, "..", "uploads", "images", fileName);
-
-  fs.stat(filePath, (err, stat) => {
-    if (err) {
-      return res.status(404).send("File not found");
+  async getImage(req, res) {
+    const fileName = req.params.filename;
+    const imagePath = path.join(__dirname, "..", "uploads", "images", fileName);
+  
+    try {
+      await fs.promises.access(imagePath);
+      res.sendFile(imagePath);
+    } catch (error) {
+      res.status(404).send("Image not found");
     }
+  }
+}
 
-    fs.createReadStream(filePath).pipe(res);
-  });
-};
-
-module.exports = {
-  getSongs,
-  streamSong,
-  uploadSong,
-  getImage,
-};
+module.exports = new SongController();
