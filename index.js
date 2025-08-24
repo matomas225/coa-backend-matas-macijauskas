@@ -23,6 +23,9 @@ app.use("/users", userRoutes);
 const songRoutes = require("./src/routes/songRoutes");
 app.use("/songs", songRoutes);
 
+const albumRoutes = require("./src/routes/albumRoutes");
+app.use("/albums", albumRoutes);
+
 app.get("/", (req, res) => {
   res.send("Success ");
 });

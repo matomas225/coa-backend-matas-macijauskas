@@ -3,9 +3,9 @@ const mongoose = require("mongoose");
 const songSchema = mongoose.Schema({
   title: String,
   artist: String,
-  album: String,
   filePath: String,
   imagePath: String,
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: "users", required: true },
   createdAt: { type: Date, default: Date.now },
 });
 

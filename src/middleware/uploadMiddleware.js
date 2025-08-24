@@ -1,37 +1,37 @@
-const multer = require('multer');
-const path = require('path');
+const multer = require("multer");
+const path = require("path");
 
 // File filter function
 const fileFilter = (req, file, cb) => {
-  if (file.fieldname === 'songFile') {
+  if (file.fieldname === "songFile") {
     // Accept audio files
-    if (file.mimetype.startsWith('audio/')) {
+    if (file.mimetype.startsWith("audio/")) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only audio files are allowed.'), false);
+      cb(new Error("Invalid file type. Only audio files are allowed."), false);
     }
-  } else if (file.fieldname === 'imageFile') {
+  } else if (file.fieldname === "imageFile") {
     // Accept image files
-    if (file.mimetype.startsWith('image/')) {
+    if (file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only image files are allowed.'), false);
+      cb(new Error("Invalid file type. Only image files are allowed."), false);
     }
   } else {
-    cb(new Error('Unexpected field'), false);
+    cb(new Error("Unexpected field"), false);
   }
 };
 
 // Configure storage
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '..', 'temp'));
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, "..", "temp"));
   },
-  filename: function (req, file, cb) {
+  filename: (req, file, cb) => {
     // Generate unique filename with extension
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
+  },
 });
 
 // Configure multer for file uploads
@@ -40,32 +40,53 @@ const upload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
-  fileFilter
+  fileFilter,
 });
 
 // Middleware for handling file uploads
 const uploadFiles = upload.fields([
-  { name: 'songFile', maxCount: 1 },
-  { name: 'imageFile', maxCount: 1 }
+  { name: "songFile", maxCount: 1 },
+  { name: "imageFile", maxCount: 1 },
 ]);
 
 // Error handling middleware for multer
 const handleMulterError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     return res.status(400).json({
-      error: 'File upload error',
-      message: err.message
+      error: "File upload error",
+      message: err.message,
     });
   } else if (err) {
     return res.status(400).json({
-      error: 'Invalid file',
-      message: err.message
+      error: "Invalid file",
+      message: err.message,
     });
   }
   next();
 };
 
+const albumCoverFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith("image/")) cb(null, true);
+  else cb(new Error("Only image files are allowed for album covers."), false);
+};
+
+const albumCoverStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, "..", "uploads", "album-covers"));
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${file.originalname}`;
+    cb(null, uniqueName);
+  },
+});
+
+const uploadAlbumCover = multer({
+  storage: albumCoverStorage,
+  fileFilter: albumCoverFilter,
+});
+
 module.exports = {
   uploadFiles,
-  handleMulterError
-}; 
+  handleMulterError,
+  uploadAlbumCover, // export this
+};
