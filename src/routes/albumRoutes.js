@@ -16,6 +16,16 @@ router.post(
     albumCreateValidationRules,
     albumController.createAlbum
 );
+
+router.patch(
+    "/:id",
+    authMiddleware,
+    uploadAlbumCover.single("coverImage"),
+    albumCreateValidationRules,
+    albumController.editAlbum
+);
+
+
 router.post(
     "/add-song",
     authMiddleware,
@@ -26,5 +36,8 @@ router.post(
 router.post('/remove-song', authMiddleware, albumController.removeSongFromAlbum)
 
 router.get("/", authMiddleware, albumController.getAlbums);
+
+router.get("/all", albumController.getAllAlbums);
+
 
 module.exports = router;
