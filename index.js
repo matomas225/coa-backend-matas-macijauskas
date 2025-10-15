@@ -13,9 +13,14 @@ mongoose
   .catch((err) => console.error("Could not connect to MongoDB...", err));
 
 app.use(express.json());
-
-const corsOptions = require("./src/middleware/corsOptions");
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: process.env.CORS_ALLOWED_ORIGINS ? process.env.CORS_ALLOWED_ORIGINS.split(',') : ["http://localhost:5173"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
 const userRoutes = require("./src/routes/userRoutes");
 app.use("/users", userRoutes);
@@ -30,4 +35,5 @@ app.get("/", (req, res) => {
   res.send("Success ");
 });
 
-app.listen(3000, () => console.log("Backend running on port: 3000"));
+const PORT = process.env.BACKEND_PORT || 3001;
+app.listen(PORT, () => console.log(`Backend running on port: ${PORT}`));
